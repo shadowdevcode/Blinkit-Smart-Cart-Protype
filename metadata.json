@@ -1,0 +1,5 @@
+{
+  "name": "Smart Repeat Cart",
+  "description": "An AI-powered smart cart that predicts your weekly groceries based on past orders, allowing for one-click refills, inspired by Blinkit.",
+  "requestFramePermissions": []
+}
