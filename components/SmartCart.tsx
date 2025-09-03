@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { CartItem, Order, Product } from '../types';
-import { PlusIcon, MinusIcon, TrashIcon, ThumbsUpIcon, ThumbsDownIcon, RepeatOffIcon, ArrowUpIcon, ArrowDownIcon, SwitchHorizontalIcon, XMarkIcon, DotsVerticalIcon } from './Icons';
+import { PlusIcon, MinusIcon, TrashIcon, ThumbsUpIcon, ThumbsDownIcon, RepeatOffIcon, ArrowUpIcon, ArrowDownIcon, SwitchHorizontalIcon, XMarkIcon, DotsVerticalIcon, XCircleIcon } from './Icons';
 import GroceryIcon from './GroceryIcon';
 import BuyAgain from './BuyAgain';
 
@@ -39,7 +39,7 @@ const FeedbackModal: React.FC<{ onClose: () => void; onSubmit: (reason: string) 
             <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm animate-slide-in-up">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-slate-800">Why was this inaccurate?</h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200">
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200" aria-label="Close feedback modal">
                         <XMarkIcon className="w-5 h-5 text-slate-500"/>
                     </button>
                 </div>
@@ -74,21 +74,33 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
     const [feedback, setFeedback] = useState<'good' | 'bad' | null>(null);
     const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [cartSessionId] = useState(() => `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
 
     const handleQuantityChange = (id: string, delta: number) => {
-        setCartItems(currentItems =>
-            currentItems.map(item => {
+        setCartItems(currentItems => {
+            const newItems = currentItems.map(item => {
                 if (item.id === id) {
                     const newQuantity = item.quantity + delta;
+                    console.log('ANALYTICS: item_quantity_changed', { cartSessionId, skuId: id, oldQuantity: item.quantity, newQuantity });
                     return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
                 }
                 return item;
-            }).filter((item): item is CartItem => item !== null)
-        );
+            }).filter((item): item is CartItem => item !== null);
+            
+            if (newItems.length < currentItems.length) {
+                // This means an item was removed by setting quantity to 0
+                const removedItem = currentItems.find(item => item.id === id);
+                 if (removedItem) {
+                    console.log('ANALYTICS: item_removed_from_smart_cart', { cartSessionId, skuId: id, wasSuggested: true, method: 'quantity_decrease' });
+                }
+            }
+            return newItems;
+        });
         setOpenMenuId(null);
     };
 
     const handleRemoveItem = (id: string) => {
+        console.log('ANALYTICS: item_removed_from_smart_cart', { cartSessionId, skuId: id, wasSuggested: true, method: 'button_click' });
         setCartItems(currentItems => currentItems.filter(item => item.id !== id));
         setOpenMenuId(null);
     };
@@ -103,6 +115,7 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
     };
     
     const handleAddItem = (itemToAdd: Product) => {
+        console.log('ANALYTICS: item_added_to_smart_cart', { cartSessionId, skuId: itemToAdd.id, source: 'regulars' });
         setCartItems(currentItems => {
             const existingItem = currentItems.find(item => item.id === itemToAdd.id);
             if (existingItem) {
@@ -125,10 +138,12 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
     }, [cartItems]);
 
     const handleCheckout = () => {
+        console.log('ANALYTICS: smart_cart_checkout', { cartSessionId, finalItemCount: totalItems, finalValue: subtotal, itemsModifiedCount: initialCart.length - finalCart.length });
         onCheckout(finalCart, subtotal);
     };
 
     const handleFeedback = (type: 'good' | 'bad') => {
+        console.log('ANALYTICS: smart_cart_feedback', { cartSessionId, feedbackType: type });
         setFeedback(type);
         if (type === 'bad') {
             setShowFeedbackModal(true);
@@ -136,7 +151,7 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
     };
     
     const handleFeedbackReasonSubmit = (reason: string) => {
-        console.log(`Feedback reason: ${reason}`);
+        console.log('ANALYTICS: smart_cart_feedback_reason', { cartSessionId, reason });
         setShowFeedbackModal(false);
     };
 
@@ -152,7 +167,7 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
                         <p className="font-bold text-orange-500 text-sm mt-1">Temporarily Unavailable</p>
                     </div>
                     <div className="flex flex-col gap-1.5 ml-2 border-l border-slate-200 pl-3">
-                         <button onClick={() => handleRemoveItem(item.id)} title="Remove item" className="p-2 rounded-full hover:bg-red-100">
+                         <button onClick={() => handleRemoveItem(item.id)} title="Remove item" aria-label={`Remove unavailable item ${item.name}`} className="p-2 rounded-full hover:bg-red-100">
                             <TrashIcon className="w-5 h-5 text-red-500" />
                         </button>
                     </div>
@@ -167,7 +182,7 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
                                     <p className="text-xs text-slate-500">{sub.unit}</p>
                                     <div className="flex justify-between items-center mt-2">
                                         <p className="font-bold text-sm">₹{sub.price.toFixed(2)}</p>
-                                        <button onClick={() => alert(`${sub.name} substitute added!`)} className="text-sm bg-blue-100 text-blue-800 font-bold py-1.5 px-3 rounded-md hover:bg-blue-200">
+                                        <button onClick={() => alert(`${sub.name} substitute added!`)} aria-label={`Add substitute: ${sub.name}`} className="text-sm bg-blue-100 text-blue-800 font-bold py-1.5 px-3 rounded-md hover:bg-blue-200">
                                             Add
                                         </button>
                                     </div>
@@ -179,6 +194,32 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
             </div>
         );
     }
+
+    const renderDelistedItem = (item: CartItem) => (
+        <div key={item.id} className="bg-red-50 border-l-4 border-red-400 rounded-r-lg p-3">
+            <div className="flex items-center gap-4">
+                <div className="flex-shrink-0 w-16 h-16 rounded-xl flex items-center justify-center bg-red-100">
+                    <XCircleIcon className="w-8 h-8 text-red-500" />
+                </div>
+                <div className="flex-grow">
+                    <p className="font-semibold text-slate-800 line-through">{item.name}</p>
+                    <p className="text-sm text-slate-500">{item.unit}</p>
+                    <p className="font-bold text-red-600 text-sm mt-1">No Longer Available</p>
+                </div>
+                <div className="ml-2 border-l border-red-200 pl-3">
+                    <button 
+                        onClick={() => handleRemoveItem(item.id)} 
+                        title="Remove item" 
+                        aria-label={`Remove delisted item ${item.name}`}
+                        className="p-2 rounded-full hover:bg-red-200"
+                    >
+                        <TrashIcon className="w-5 h-5 text-red-600" />
+                    </button>
+                </div>
+            </div>
+            <p className="text-xs text-slate-600 mt-2 pl-1">This item is no longer in our catalog and cannot be ordered.</p>
+        </div>
+    );
     
     const renderAvailableItem = (item: CartItem) => {
         const isMenuOpen = openMenuId === item.id;
@@ -196,14 +237,14 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
 
                 {!item.doNotRepeat && (
                     <div className="flex items-center gap-2">
-                        <button onClick={() => handleQuantityChange(item.id, -1)} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200"><MinusIcon className="w-4 h-4 text-slate-600"/></button>
-                        <span className="font-bold text-lg w-8 text-center">{item.quantity}</span>
-                        <button onClick={() => handleQuantityChange(item.id, 1)} className="p-2 rounded-full bg-green-100 hover:bg-green-200"><PlusIcon className="w-4 h-4 text-green-700"/></button>
+                        <button onClick={() => handleQuantityChange(item.id, -1)} aria-label={`Decrease quantity of ${item.name}`} className="p-2 rounded-full bg-slate-100 hover:bg-slate-200"><MinusIcon className="w-4 h-4 text-slate-600"/></button>
+                        <span className="font-bold text-lg w-8 text-center" aria-live="polite">{item.quantity}</span>
+                        <button onClick={() => handleQuantityChange(item.id, 1)} aria-label={`Increase quantity of ${item.name}`} className="p-2 rounded-full bg-green-100 hover:bg-green-200"><PlusIcon className="w-4 h-4 text-green-700"/></button>
                     </div>
                 )}
                 
                  <div className="relative ml-2 border-l border-slate-200 pl-2">
-                    <button onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)} className="p-2 rounded-full hover:bg-slate-200">
+                    <button onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)} aria-label={`More options for ${item.name}`} className="p-2 rounded-full hover:bg-slate-200">
                         <DotsVerticalIcon className="w-5 h-5 text-slate-500" />
                     </button>
                     {isMenuOpen && (
@@ -233,7 +274,11 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
                 </header>
 
                 <main className="p-4 sm:p-6 space-y-3 flex-grow overflow-y-auto bg-white">
-                    {cartItems.map(item => item.status === 'OUT_OF_STOCK' ? renderOOSItem(item) : renderAvailableItem(item))}
+                    {cartItems.map(item => {
+                         if (item.status === 'OUT_OF_STOCK') return renderOOSItem(item);
+                         if (item.status === 'DELISTED') return renderDelistedItem(item);
+                         return renderAvailableItem(item);
+                    })}
                 </main>
 
                 <div className="p-4 sm:p-6 border-t border-slate-200 flex-shrink-0 bg-slate-50">
@@ -252,14 +297,15 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
                            <p className="text-green-600 font-semibold">Thanks for your feedback!</p>
                         ) : (
                            <>
-                            <button onClick={() => handleFeedback('good')} className="p-2 rounded-full hover:bg-green-100"><ThumbsUpIcon className="w-6 h-6 text-green-500"/></button>
-                            <button onClick={() => handleFeedback('bad')} className="p-2 rounded-full hover:bg-red-100"><ThumbsDownIcon className="w-6 h-6 text-red-500"/></button>
+                            <button onClick={() => handleFeedback('good')} aria-label="Prediction was accurate" className="p-2 rounded-full hover:bg-green-100"><ThumbsUpIcon className="w-6 h-6 text-green-500"/></button>
+                            <button onClick={() => handleFeedback('bad')} aria-label="Prediction was inaccurate" className="p-2 rounded-full hover:bg-red-100"><ThumbsDownIcon className="w-6 h-6 text-red-500"/></button>
                            </>
                         )}
                     </div>
                     <button
                         onClick={handleCheckout}
                         disabled={totalItems === 0}
+                        aria-disabled={totalItems === 0}
                         className="w-full bg-yellow-400 text-slate-900 font-bold py-4 px-4 rounded-xl shadow-md hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:transform-none flex justify-between items-center"
                     >
                        <span className="text-lg">Place Order</span>

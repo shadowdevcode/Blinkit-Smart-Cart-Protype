@@ -25,7 +25,7 @@ const productSchemaWithStatus = {
     type: Type.OBJECT,
     properties: {
         ...productSchema.properties,
-        status: { type: Type.STRING, description: "The stock status: 'AVAILABLE' or 'OUT_OF_STOCK'." },
+        status: { type: Type.STRING, description: "The stock status: 'AVAILABLE', 'OUT_OF_STOCK', or 'DELISTED'." },
         previousPrice: { type: Type.NUMBER, description: "The item's price during the last purchase, only include if it has changed." }
     },
     required: [...productSchema.required, 'status']
@@ -66,8 +66,9 @@ export const generateAndPredictCart = async (): Promise<{ pastOrders: Order[]; p
                 - Exclude one-off purchases.
                 - Apply these modifications to the predicted items:
                     1. Mark exactly one item as 'OUT_OF_STOCK'.
-                    2. For exactly one of the available items, provide a 'previousPrice' that is different from its current 'price'.
-                    3. All other items must have a status of 'AVAILABLE'.
+                    2. Mark exactly one different item as 'DELISTED'.
+                    3. For exactly one of the 'AVAILABLE' items, provide a 'previousPrice' that is different from its current 'price'.
+                    4. All other items must have a status of 'AVAILABLE'.
                 - This predicted cart should be in the final JSON output under the key "predictedCart".
 
                 For all items, use 'https://picsum.photos/100/100' for images and calculate prices in INR.
