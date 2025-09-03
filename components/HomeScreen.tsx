@@ -7,6 +7,8 @@ import SmartCartPreview from './SmartCartPreview';
 import PastOrders from './PastOrders';
 import CategoryGrid from './CategoryGrid';
 import BuyAgain from './BuyAgain';
+import CategoryGridSkeleton from './skeletons/CategoryGridSkeleton';
+import BuyAgainSkeleton from './skeletons/BuyAgainSkeleton';
 
 interface SmartCartData {
     predictedCart: CartItem[];
@@ -16,16 +18,17 @@ interface SmartCartData {
 interface HomeScreenProps {
     onViewSmartCart: (data: SmartCartData) => void;
     initialData: SmartCartData | null;
+    showToast: (message: string) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onViewSmartCart, initialData }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onViewSmartCart, initialData, showToast }) => {
     const [isLoading, setIsLoading] = useState<boolean>(!initialData);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<SmartCartData | null>(initialData);
 
     useEffect(() => {
         const fetchCartData = async () => {
-            if (data) return; // Don't refetch if we already have data (e.g., from navigating back)
+            if (data) return; 
             
             setIsLoading(true);
             setError(null);
@@ -47,8 +50,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onViewSmartCart, initialData })
     }, [data]);
 
     const handleBuyAgainAdd = (item: Product) => {
-        alert(`"${item.name}" would be added to your cart.\n\nFor this demo, please proceed to the 'View & Edit Cart' to manage all your items.`);
-        console.log('Analytics: homescreen_buy_again_add_clicked', { itemId: item.id });
+        showToast(`${item.name} added to cart`);
+        // In a real app, this would also update the cart state.
+        // For the demo, we show a toast and let the user manage the main cart.
     };
 
     return (
@@ -60,16 +64,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onViewSmartCart, initialData })
                 cart={data?.predictedCart}
                 onViewCart={() => data && onViewSmartCart(data)}
             />
-            {!isLoading && <CategoryGrid />}
-            {!isLoading && data && (
-                <BuyAgain
-                    pastOrders={data.pastOrders}
-                    cartItems={data.predictedCart || []}
-                    onAddItem={handleBuyAgainAdd}
-                    title="Buy it Again"
-                />
+            {isLoading ? (
+                <>
+                    <CategoryGridSkeleton />
+                    <BuyAgainSkeleton />
+                </>
+            ) : (
+                <>
+                    <CategoryGrid />
+                    {data && (
+                        <BuyAgain
+                            pastOrders={data.pastOrders}
+                            cartItems={data.predictedCart || []}
+                            onAddItem={handleBuyAgainAdd}
+                            title="Buy it Again"
+                        />
+                    )}
+                    {data?.pastOrders && <PastOrders orders={data.pastOrders} />}
+                </>
             )}
-            {!isLoading && data?.pastOrders && <PastOrders orders={data.pastOrders} />}
         </div>
     );
 };

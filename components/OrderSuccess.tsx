@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { CartItem } from '../types';
 import GroceryIcon from './GroceryIcon';
+import Confetti from './Confetti';
 
 interface OrderSuccessProps {
     order: {
@@ -27,6 +28,7 @@ const OrderSuccess: React.FC<OrderSuccessProps> = ({ order, onNewOrder }) => {
 
     return (
         <div className="fixed inset-0 bg-slate-50 text-slate-900 flex flex-col font-sans animate-fade-in z-50">
+            <Confetti />
             <header className="flex-shrink-0 p-4 text-center border-b border-slate-200 bg-white">
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
                     <CheckIcon className="w-8 h-8 text-white" />

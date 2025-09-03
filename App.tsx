@@ -4,7 +4,8 @@ import { Order, CartItem } from './types';
 import SmartCart from './components/SmartCart';
 import OrderSuccess from './components/OrderSuccess';
 import HomeScreen from './components/HomeScreen';
-import { ChevronLeftIcon } from './components/Icons';
+import Toast from './components/Toast';
+import { ChevronLeftIcon, LocationPinIcon } from './components/Icons';
 
 type View = 'home' | 'smartCart' | 'orderSuccess';
 
@@ -17,6 +18,12 @@ const App: React.FC = () => {
     const [view, setView] = useState<View>('home');
     const [smartCartData, setSmartCartData] = useState<SmartCartData | null>(null);
     const [finalOrder, setFinalOrder] = useState<{ items: CartItem[], total: number } | null>(null);
+    const [toastMessage, setToastMessage] = useState<string>('');
+
+
+    const showToast = (message: string) => {
+        setToastMessage(message);
+    };
 
     const handleViewSmartCart = (data: SmartCartData) => {
         setSmartCartData(data);
@@ -34,7 +41,7 @@ const App: React.FC = () => {
 
     const handleNewOrder = () => {
         setFinalOrder(null);
-        setSmartCartData(null); // This will cause HomeScreen to refetch next time
+        setSmartCartData(null); 
         setView('home');
     };
 
@@ -42,10 +49,10 @@ const App: React.FC = () => {
     const renderContent = () => {
         switch (view) {
             case 'home':
-                return <HomeScreen onViewSmartCart={handleViewSmartCart} initialData={smartCartData} />;
+                return <HomeScreen onViewSmartCart={handleViewSmartCart} initialData={smartCartData} showToast={showToast} />;
             case 'smartCart':
                 return smartCartData && (
-                    <div className="w-full">
+                    <div className="w-full h-full">
                          <SmartCart 
                             initialCart={smartCartData.predictedCart} 
                             pastOrders={smartCartData.pastOrders} 
@@ -71,7 +78,9 @@ const App: React.FC = () => {
                 @keyframes fade-in-up { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
                 .animate-slide-in-up { animation: slide-in-up 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
                 @keyframes slide-in-up { 0% { transform: translateY(100%); } 100% { transform: translateY(0); } }
-                 .confetti { position: absolute; width: 8px; height: 8px; background-color: #facc15; opacity: 0.7; animation: confetti-fall 2s ease-out forwards; }
+                .animate-toast { animation: toast-in-out 3s ease-in-out forwards; }
+                @keyframes toast-in-out { 0% { bottom: -100px; opacity: 0; } 10% { bottom: 24px; opacity: 1; } 90% { bottom: 24px; opacity: 1; } 100% { bottom: -100px; opacity: 0; } }
+                .confetti { position: absolute; width: 8px; height: 8px; background-color: #facc15; opacity: 0.7; animation: confetti-fall 2s ease-out forwards; }
                 @keyframes confetti-fall { 0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
             `}</style>
             
@@ -84,21 +93,24 @@ const App: React.FC = () => {
                             </button>
                             <div>
                                 <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">Your Smart Cart</h1>
-                                <p className="text-slate-500 mt-2">Review your AI-predicted items</p>
                             </div>
                         </div>
                     ) : (
-                         <div className="text-center">
-                            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">Smart Repeat Cart</h1>
-                            <p className="text-slate-500 mt-2">Inspired by <span className="font-semibold text-yellow-500">Blinkit</span></p>
+                         <div className="text-left">
+                            <div className="flex items-center gap-2">
+                                <LocationPinIcon className="w-6 h-6 text-slate-600"/>
+                                <h1 className="text-xl font-bold text-slate-800 tracking-tight">Delivering to <span className="underline decoration-dashed">Home</span></h1>
+                            </div>
                         </div>
                     )}
                 </header>
             )}
 
-            <main className="w-full max-w-4xl mx-auto">
+            <main className="w-full max-w-4xl mx-auto flex-grow">
                 {renderContent()}
             </main>
+            
+            <Toast message={toastMessage} onDismiss={() => setToastMessage('')} />
         </div>
     );
 };
