@@ -5,7 +5,7 @@ Inspired by the efficiency of services like **Blinkit**, this project is a funct
 
 ---
 
-## The Vision: A GPM Perspective
+## The Vision
 
 ### The Problem: The Chore of the Repeat Purchase
 
