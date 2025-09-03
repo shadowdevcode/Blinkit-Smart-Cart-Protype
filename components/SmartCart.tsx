@@ -1,7 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { CartItem, Order, Product } from '../types';
 import { PlusIcon, MinusIcon, TrashIcon, ThumbsUpIcon, ThumbsDownIcon, RepeatOffIcon, ArrowUpIcon, ArrowDownIcon, SwitchHorizontalIcon, XMarkIcon } from './Icons';
 import GroceryIcon from './GroceryIcon';
+import BuyAgain from './BuyAgain';
 
 interface SmartCartProps {
     initialCart: CartItem[];
@@ -109,31 +111,6 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
             finalCart: activeItems
         };
     }, [cartItems]);
-    
-    const frequentlyPurchased = useMemo(() => {
-        if (!pastOrders || pastOrders.length === 0) return [];
-        
-        const allItems = pastOrders.flatMap(order => order.items || []);
-        const itemCounts = new Map<string, { item: Product, count: number }>();
-
-        allItems.forEach(item => {
-            if (itemCounts.has(item.id)) {
-                itemCounts.get(item.id)!.count++;
-            } else {
-                itemCounts.set(item.id, { item, count: 1 });
-            }
-        });
-
-        const cartItemIds = new Set(cartItems.map(item => item.id));
-
-        return Array.from(itemCounts.values())
-            .filter(entry => entry.count > 1) 
-            .filter(entry => !cartItemIds.has(entry.item.id))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10)
-            .map(entry => entry.item);
-    }, [pastOrders, cartItems]);
-
 
     const handleCheckout = () => {
         onCheckout(finalCart, subtotal);
@@ -200,35 +177,24 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onChecko
     return (
         <>
         {showFeedbackModal && <FeedbackModal onClose={() => setShowFeedbackModal(false)} onSubmit={handleFeedbackReasonSubmit} />}
-        <div className="w-full bg-white rounded-2xl shadow-lg animate-fade-in-up flex flex-col md:max-h-[calc(100vh-180px)]">
-            <header className="p-4 sm:p-6 border-b border-slate-200 flex-shrink-0">
+        <div className="w-full bg-slate-50 rounded-2xl shadow-lg animate-fade-in-up flex flex-col md:max-h-[calc(100vh-180px)]">
+            <header className="p-4 sm:p-6 border-b border-slate-200 flex-shrink-0 bg-white rounded-t-2xl">
                 <h2 className="text-xl font-bold text-slate-800">Your Smart Cart</h2>
                 <p className="text-sm text-slate-500 mt-1">AI-predicted items are ready for your review.</p>
             </header>
 
-            <main className="p-4 sm:p-6 space-y-3 flex-grow overflow-y-auto">
+            <main className="p-4 sm:p-6 space-y-3 flex-grow overflow-y-auto bg-white">
                 {cartItems.map(renderItem)}
             </main>
 
-            {frequentlyPurchased.length > 0 && (
-                 <section className="p-4 sm:p-6 border-t border-slate-200 flex-shrink-0">
-                    <h3 className="text-lg font-bold text-slate-700 mb-3">Add from your regulars</h3>
-                    <div className="flex gap-3 overflow-x-auto pb-3 -mb-3">
-                        {frequentlyPurchased.map(item => (
-                             <div key={item.id} className="flex-shrink-0 w-32 text-center p-3 rounded-xl bg-slate-50 border border-slate-200">
-                                <div className="w-12 h-12 rounded-full bg-yellow-100/50 flex items-center justify-center mb-2 mx-auto">
-                                    <GroceryIcon name={item.name} className="w-6 h-6 text-yellow-600" />
-                                </div>
-                                <p className="text-xs font-medium text-slate-700 truncate w-full h-8 flex items-center justify-center">{item.name}</p>
-                                <button onClick={() => handleAddItem(item)} className="mt-2 w-full flex items-center justify-center gap-1 text-sm bg-green-100 text-green-800 font-bold py-1.5 px-2 rounded-lg hover:bg-green-200 transition-colors">
-                                    <PlusIcon className="w-4 h-4" />
-                                    Add
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                 </section>
-            )}
+            <div className="p-4 sm:p-6 border-t border-slate-200 flex-shrink-0 bg-slate-50">
+                <BuyAgain
+                    pastOrders={pastOrders}
+                    cartItems={cartItems}
+                    onAddItem={handleAddItem}
+                    title="Add from your regulars"
+                />
+            </div>
 
             <footer className="p-4 sm:p-6 border-t border-slate-200 bg-white rounded-b-2xl sticky bottom-0 flex-shrink-0">
                 <div className="flex justify-center items-center gap-4 mb-4">
