@@ -30,10 +30,9 @@ This prototype simulates the complete end-to-end experience for the user.
 
 ### Step 1: AI-Powered Prediction & Data Simulation
 
-1.  **App Launch:** On loading, the application first calls the Gemini API to **simulate a realistic purchase history** for a typical user in India. This generates the last four weekly orders with common household items.
-2.  **Prediction Request:** This generated history is immediately sent back to the Gemini API with a second, more complex prompt.
-3.  **Intelligent Analysis:** The prompt instructs the AI to analyze the purchase history for frequency, recency, and common quantities to predict the user's *next* logical shopping cart.
-4.  **Dynamic Scenarios:** To ensure the UI is robust, the AI is also instructed to inject real-world complexities into its prediction:
+1.  **App Launch & Prediction:** On loading, the application makes a single, efficient call to the Gemini API. The prompt is engineered to perform two tasks in one operation: first, it internally simulates a realistic purchase history for a typical user, and then, using that context, it immediately analyzes the history to predict the user's *next* logical shopping cart.
+2.  **Intelligent Analysis:** The prompt instructs the AI to analyze the purchase history for frequency, recency, and common quantities.
+3.  **Dynamic Scenarios:** To ensure the UI is robust, the AI is also instructed to inject real-world complexities into its prediction:
     *   It will mark one item as **'OUT_OF_STOCK'**.
     *   It will alter the price of another item and provide its **'previousPrice'** to simulate a price change.
 
@@ -106,4 +105,3 @@ This project is designed to be run in an environment where the Gemini API key is
     http-server .
     ```
     Now, open your browser and navigate to the local address provided (e.g., `http://localhost:8080`).
-

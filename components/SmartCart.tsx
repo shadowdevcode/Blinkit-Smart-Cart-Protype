@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { CartItem, Order, Product } from '../types';
 import { PlusIcon, MinusIcon, TrashIcon, ThumbsUpIcon, ThumbsDownIcon, RepeatOffIcon, ArrowUpIcon, ArrowDownIcon, SwitchHorizontalIcon, XMarkIcon } from './Icons';
@@ -7,6 +6,7 @@ import GroceryIcon from './GroceryIcon';
 interface SmartCartProps {
     initialCart: CartItem[];
     pastOrders: Order[];
+    onCheckout: (cart: CartItem[], total: number) => void;
 }
 
 const GroceryIconWrapper: React.FC<{ name: string; className?: string; isOOS?: boolean }> = ({ name, className, isOOS }) => (
@@ -57,7 +57,7 @@ const FeedbackModal: React.FC<{ onClose: () => void; onSubmit: (reason: string) 
 };
 
 
-const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders }) => {
+const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders, onCheckout }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>(initialCart.map(item => ({ ...item, doNotRepeat: false })));
     const [feedback, setFeedback] = useState<'good' | 'bad' | null>(null);
     const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
@@ -101,11 +101,12 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders }) => {
         });
     };
 
-    const { subtotal, totalItems } = useMemo(() => {
+    const { subtotal, totalItems, finalCart } = useMemo(() => {
         const activeItems = cartItems.filter(item => !item.doNotRepeat && item.status === 'AVAILABLE');
         return {
             subtotal: activeItems.reduce((acc, item) => acc + item.price * item.quantity, 0),
             totalItems: activeItems.reduce((acc, item) => acc + item.quantity, 0),
+            finalCart: activeItems
         };
     }, [cartItems]);
     
@@ -135,7 +136,7 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders }) => {
 
 
     const handleCheckout = () => {
-        alert(`Checkout initiated with ${totalItems} items for a total of ₹${subtotal.toFixed(2)}. Thank you for shopping!`);
+        onCheckout(finalCart, subtotal);
     };
 
     const handleFeedback = (type: 'good' | 'bad') => {
@@ -199,7 +200,7 @@ const SmartCart: React.FC<SmartCartProps> = ({ initialCart, pastOrders }) => {
     return (
         <>
         {showFeedbackModal && <FeedbackModal onClose={() => setShowFeedbackModal(false)} onSubmit={handleFeedbackReasonSubmit} />}
-        <div className="w-full bg-white rounded-2xl shadow-lg animate-fade-in-up flex flex-col" style={{maxHeight: 'calc(100vh - 180px)'}}>
+        <div className="w-full bg-white rounded-2xl shadow-lg animate-fade-in-up flex flex-col md:max-h-[calc(100vh-180px)]">
             <header className="p-4 sm:p-6 border-b border-slate-200 flex-shrink-0">
                 <h2 className="text-xl font-bold text-slate-800">Your Smart Cart</h2>
                 <p className="text-sm text-slate-500 mt-1">AI-predicted items are ready for your review.</p>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Order } from '../types';
 import { ReceiptIcon } from './Icons';
@@ -27,7 +28,7 @@ const PastOrders: React.FC<PastOrdersProps> = ({ orders }) => {
     };
 
     return (
-        <div className="w-full animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="w-full animate-fade-in-up p-4 sm:p-0" style={{ animationDelay: '0.2s' }}>
             <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <ReceiptIcon className="w-6 h-6" />
                 Recent Order History

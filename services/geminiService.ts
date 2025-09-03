@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Order, CartItem } from "../types";
 
@@ -22,106 +21,91 @@ const productSchema = {
     required: ["id", "name", "price", "image", "unit", "quantity"]
 };
 
-export const generatePastOrders = async (): Promise<Order[]> => {
+const productSchemaWithStatus = {
+    type: Type.OBJECT,
+    properties: {
+        ...productSchema.properties,
+        status: { type: Type.STRING, description: "The stock status: 'AVAILABLE' or 'OUT_OF_STOCK'." },
+        previousPrice: { type: Type.NUMBER, description: "The item's price during the last purchase, only include if it has changed." }
+    },
+    required: [...productSchema.required, 'status']
+};
+
+const orderSchema = {
+    type: Type.OBJECT,
+    properties: {
+        orderId: { type: Type.STRING, description: "A unique order ID" },
+        date: { type: Type.STRING, description: "The date of the order in ISO 8601 format" },
+        items: {
+            type: Type.ARRAY,
+            items: productSchema
+        },
+    },
+    required: ["orderId", "date", "items"]
+};
+
+
+export const generateAndPredictCart = async (): Promise<{ pastOrders: Order[]; predictedCart: CartItem[] }> => {
     try {
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
             contents: `
-                You are a user data simulator for an Indian online grocery app like Blinkit.
-                Generate a realistic purchase history for a user in India who shops weekly.
-                The history should span the last 4 orders.
-                Include common Indian household items like Atta (flour), Dal (lentils), Ghee, Paneer, Dahi (yogurt), rice, onions, tomatoes, and some popular snacks like 'Kurkure' or 'Lays'.
-                Vary the quantities and items slightly between orders to show a realistic pattern.
-                The total value for each order must be at least 350 Rupees. Calculate prices in INR.
-                For images, use 'https://picsum.photos/100/100' as a placeholder.
-                Provide the output as a JSON object, with prices as numbers.
+                You are a user data simulator and shopping cart predictor for an Indian online grocery app like Blinkit.
+                Your task is to perform two steps in one go and provide a single JSON object as output.
+
+                Step 1: Internally simulate a realistic purchase history.
+                - Generate a history of the last 4 weekly orders for a user in India.
+                - Include common Indian household items: Atta (flour), Dal (lentils), Ghee, Paneer, Dahi (yogurt), rice, onions, tomatoes, and some popular snacks like 'Kurkure' or 'Lays'.
+                - Vary quantities and items slightly between orders.
+                - Each order's total value must be at least 350 INR.
+                - This simulated history should be included in the final JSON output under the key "pastOrders".
+
+                Step 2: Predict the next smart cart.
+                - Based on the history you just generated, analyze buying frequency and recency to predict their next weekly shopping cart.
+                - The prediction should be a list of items they are most likely to need now.
+                - Exclude one-off purchases.
+                - Apply these modifications to the predicted items:
+                    1. Mark exactly one item as 'OUT_OF_STOCK'.
+                    2. For exactly one of the available items, provide a 'previousPrice' that is different from its current 'price'.
+                    3. All other items must have a status of 'AVAILABLE'.
+                - This predicted cart should be in the final JSON output under the key "predictedCart".
+
+                For all items, use 'https://picsum.photos/100/100' for images and calculate prices in INR.
+                Provide the output as a single JSON object.
             `,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            orderId: { type: Type.STRING, description: "A unique order ID" },
-                            date: { type: Type.STRING, description: "The date of the order in ISO 8601 format" },
-                            items: {
-                                type: Type.ARRAY,
-                                items: productSchema
-                            },
+                    type: Type.OBJECT,
+                    properties: {
+                        pastOrders: {
+                            type: Type.ARRAY,
+                            items: orderSchema,
+                            description: "The simulated past 4 orders."
                         },
-                         required: ["orderId", "date", "items"]
-                    }
+                        predictedCart: {
+                            type: Type.ARRAY,
+                            items: productSchemaWithStatus,
+                            description: "The AI-predicted next shopping cart."
+                        }
+                    },
+                    required: ["pastOrders", "predictedCart"]
                 }
             }
         });
 
         const jsonStr = response.text.trim();
         const data = JSON.parse(jsonStr);
-        if (!Array.isArray(data)) {
-            console.error("AI response for past orders was not an array:", data);
-            throw new Error("AI returned an unexpected format for past orders.");
+
+        if (!data.pastOrders || !data.predictedCart) {
+            console.error("AI response is missing required keys:", data);
+            throw new Error("AI returned an unexpected format.");
         }
-        return data as Order[];
+
+        return data as { pastOrders: Order[]; predictedCart: CartItem[] };
+
     } catch (error) {
-        console.error("Error generating past orders:", error);
-        throw new Error("Failed to generate past orders from AI.");
-    }
-};
-
-
-export const predictSmartCart = async (pastOrders: Order[]): Promise<CartItem[]> => {
-    try {
-        const prompt = `
-            Given the following purchase history (in INR) for a user in India:
-            ${JSON.stringify(pastOrders, null, 2)}
-
-            Analyze their buying frequency, recency, and common quantities. 
-            Predict their next weekly shopping cart. The prediction should be a list of items they are most likely to need now.
-            Exclude items that were purchased only once or seem to be a one-off purchase.
-            
-            To make this simulation more realistic, please apply the following rules to the predicted items:
-            1. Mark one item as 'OUT_OF_STOCK'. This item's price should not be counted in any total. Set its quantity to what it normally would be.
-            2. For one of the available items, provide a 'previousPrice' that is different from its current 'price' to simulate a price change. For example, if the current price is 55, set previousPrice to 52.
-            3. All other items should have a status of 'AVAILABLE'.
-            4. Do not include any 'DELISTED' items in this prediction.
-
-            Return a JSON array of items, with prices in INR.
-            For images, use 'https://picsum.photos/100/100' as a placeholder.
-        `;
-        
-        const productSchemaWithStatus = {
-            type: Type.OBJECT,
-            properties: {
-                ...productSchema.properties,
-                status: { type: Type.STRING, description: "The stock status: 'AVAILABLE' or 'OUT_OF_STOCK'." },
-                previousPrice: { type: Type.NUMBER, description: "The item's price during the last purchase, only include if it has changed." }
-            },
-            // The required fields from productSchema PLUS 'status'. 'previousPrice' is optional as it's not in this list.
-            required: [...productSchema.required, 'status']
-        };
-
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: productSchemaWithStatus
-                }
-            }
-        });
-        
-        const jsonStr = response.text.trim();
-        const data = JSON.parse(jsonStr);
-        if (!Array.isArray(data)) {
-            console.error("AI response for smart cart was not an array:", data);
-            throw new Error("AI returned an unexpected format for the smart cart.");
-        }
-        return data as CartItem[];
-    } catch (error) {
-        console.error("Error predicting smart cart:", error);
-        throw new Error("Failed to predict smart cart from AI.");
+        console.error("Error generating and predicting cart:", error);
+        throw new Error("Failed to generate and predict smart cart from AI.");
     }
 };
