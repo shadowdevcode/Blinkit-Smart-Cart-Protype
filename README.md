@@ -5,7 +5,7 @@ Inspired by the efficiency of services like **Blinkit**, this project is a funct
 
 ---
 
-## The Vision
+## The Vision: A GPM Perspective
 
 ### The Problem: The Chore of the Repeat Purchase
 
@@ -70,40 +70,38 @@ User interaction is the most valuable data source for refining the AI model.
 
 ## Running The Project
 
-This project is designed to run in an environment where the Google Gemini API key is securely managed and made available to the application.
+This project is designed to be run in an environment where the Gemini API key is securely managed as an environment variable.
 
 ### Prerequisites
-*   A modern web browser that supports `importmap` (e.g., Chrome, Edge, Firefox, Safari).
-*   A valid Google Gemini API key. You can get one from [Google AI Studio](https://aistudio.google.com/app/apikey).
+*   A modern web browser that supports `importmap` (Chrome, Edge, Firefox, Safari).
+*   A valid Google Gemini API key.
 
-### Setup & Running Locally
+### Setup Instructions
 
-This project can be run without any build tools or complex setup.
-
-1.  **Clone or download the project files.**
-
-2.  **Add Your API Key:**
-    Open the `index.html` file. At the bottom, you will find a script block. Replace the placeholder `"YOUR_GEMINI_API_KEY_HERE"` with your actual Google Gemini API key.
-
-    ```html
-    <!-- Located at the bottom of index.html -->
-    <script type="module">
-      // ...
-      process.env.API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // <-- EDIT THIS LINE
-    </script>
-    <script type="module" src="/index.tsx"></script>
+1.  **Clone the Repository:**
+    ```bash
+    git clone <repository-url>
+    cd <repository-directory>
     ```
-    **Note:** This method is for local development convenience. In a production environment, you should never expose API keys directly in client-side code. The key would be injected securely by your hosting provider or accessed via a backend proxy.
+2.  **Configure API Key:**
+    The application is hard-coded to look for the API key in `process.env.API_KEY`. In a cloud development environment or during deployment (e.g., Vercel, Netlify), you must set this as a secret environment variable.
+
+    For **local development**, you will need a local server that can inject environment variables, such as `vite`.
+    *   Install `vite`: `npm install -g vite`
+    *   Create a `.env` file in the root of the project.
+    *   Add your API key to the `.env` file:
+        ```
+        VITE_API_KEY=YOUR_GEMINI_API_KEY_HERE
+        ```
+    *   *Important:* You would then need to modify `geminiService.ts` to read `import.meta.env.VITE_API_KEY` instead of `process.env.API_KEY`. The current code is optimized for a server-side rendering or protected browser environment.
 
 3.  **Serve the Application:**
-    Because the app uses modern JavaScript modules (`import`), you need to serve it from a local web server. You cannot simply open `index.html` from your file system.
-
-    If you have Node.js installed, you can use the `http-server` package:
+    You can use any simple static file server. A common choice is `http-server`:
     ```bash
-    # Install http-server globally if you don't have it
+    # Install if you don't have it
     npm install -g http-server
 
-    # From the project's root directory, run the server:
+    # Run from the project root
     http-server .
     ```
-    Now, open your browser and navigate to the local address provided (e.g., `http://localhost:8080`). The app should load and function correctly.
+    Now, open your browser and navigate to the local address provided (e.g., `http://localhost:8080`).

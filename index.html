@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -12,6 +11,13 @@
         background-color: #f8fafc; /* slate-50 */
       }
     </style>
+  <script>
+    // Polyfill for process.env to avoid a ReferenceError in browser-only environments.
+    // The application is designed to read the API key from this object.
+    // In a production environment, a server or build tool would populate this.
+    // This script ensures the app can load and show a proper error if the key is missing.
+    window.process = window.process || { env: {} };
+  </script>
   <script type="importmap">
 {
   "imports": {
